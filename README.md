@@ -1,5 +1,9 @@
 # DayScribe
 
+[![CI](https://github.com/laldinsoft/dayscribe/actions/workflows/ci.yml/badge.svg)](https://github.com/laldinsoft/dayscribe/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Platform](https://img.shields.io/badge/platform-macOS%2014%2B%20Apple%20Silicon-lightgrey)
+
 A tiny, native macOS menu bar utility for capturing voice notes into a daily Markdown file, transcribed entirely on your Mac.
 
 **Control + Option + N → speak → Control + Option + N → note appended to today's Markdown.**
