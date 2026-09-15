@@ -1,0 +1,20 @@
+# Build output
+.build/
+.swiftpm/
+dist/
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+
+# Downloaded at build time by scripts/bootstrap.sh (never committed)
+.vendor/
+.tools/
+models/
+*.download
+
+# Local logs and editor/OS noise
+.build-log
+.test-log
+.DS_Store
+.idea/
+.vscode/

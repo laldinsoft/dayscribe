@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Both jobs run on Apple Silicon macOS runners. Downloads are pinned and
+# checksum-verified by the scripts, so caching them is safe.
+jobs:
+  test:
+    name: Unit tests
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache whisper.cpp source and static libraries
+        uses: actions/cache@v4
+        with:
+          path: |
+            .vendor
+            .build/native
+          key: whisper-${{ runner.os }}-${{ hashFiles('scripts/bootstrap.sh', 'scripts/lib.sh') }}
+      - name: Check shell syntax
+        run: bash -n scripts/*.sh
+      - name: Build engine and run tests
+        run: ./scripts/test.sh
+
+  build:
+    name: Build app and smoke test
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache whisper.cpp source and static libraries
+        uses: actions/cache@v4
+        with:
+          path: |
+            .vendor
+            .build/native
+          key: whisper-${{ runner.os }}-${{ hashFiles('scripts/bootstrap.sh', 'scripts/lib.sh') }}
+      - name: Cache Whisper model
+        uses: actions/cache@v4
+        with:
+          path: models
+          key: model-${{ hashFiles('scripts/fetch-model.sh') }}
+      - name: Build DayScribe.app
+        run: ./scripts/build.sh
+      - name: Transcribe the bundled sample
+        run: ./scripts/smoke-test.sh
