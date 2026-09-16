@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- Intel Mac support. `make build` now produces a universal app: Apple Silicon
+  keeps Metal GPU inference, and Intel transcribes on the CPU with Accelerate
+  and AVX2/FMA kernels. `scripts/bootstrap.sh` builds the whisper.cpp engine
+  once per architecture and merges the static libraries with `lipo`.
+- `make build ARCH=host|arm64|x86_64` builds a single architecture, and
+  `scripts/smoke-test.sh --arch x86_64` runs the Intel slice through Rosetta 2
+  on an Apple Silicon Mac.
+- `scripts/package.sh` names its ZIP after what it built, so the default is now
+  `dist/DayScribe-macOS-universal.zip`.
+- CI runs the unit tests on Apple Silicon and Intel runners, and builds and
+  smoke-tests the app on both.
+
 ## 0.2.0 — 2026-09-15
 
 - Launch at Login via ServiceManagement, with the menu state refreshed each

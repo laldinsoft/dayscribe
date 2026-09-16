@@ -3,7 +3,7 @@ import PackageDescription
 import Foundation
 
 let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().path
-let native = "\(root)/.build/native"
+let native = "\(root)/.build/native/lib"
 let package = Package(
     name: "DayScribe",
     platforms: [.macOS(.v14)],
@@ -12,7 +12,7 @@ let package = Package(
         .target(name: "WhisperBridge", cxxSettings: [
             .unsafeFlags(["-I\(root)/.vendor/whisper.cpp/include", "-I\(root)/.vendor/whisper.cpp/ggml/include"])
         ], linkerSettings: [
-            .unsafeFlags(["-L\(native)/src", "-L\(native)/ggml/src", "-L\(native)/ggml/src/ggml-cpu", "-L\(native)/ggml/src/ggml-metal", "-L\(native)/ggml/src/ggml-blas"]),
+            .unsafeFlags(["-L\(native)"]),
             .linkedLibrary("whisper"), .linkedLibrary("ggml"), .linkedLibrary("ggml-base"),
             .linkedLibrary("ggml-cpu"), .linkedLibrary("ggml-metal"), .linkedLibrary("ggml-blas"),
             .linkedFramework("Accelerate"), .linkedFramework("Metal"), .linkedFramework("Foundation")

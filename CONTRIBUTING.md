@@ -6,12 +6,12 @@ easiest to accept.
 
 ## Setting up
 
-You need an Apple Silicon Mac, macOS 14 or later, and Xcode (or the Command
-Line Tools). Then:
+You need a Mac running macOS 14 or later (Apple Silicon or Intel), and Xcode
+(or the Command Line Tools). Then:
 
 ```sh
 make test    # downloads and builds whisper.cpp, runs the unit tests
-make build   # also downloads the model and produces dist/DayScribe.app
+make build   # also downloads the model and produces a universal dist/DayScribe.app
 make smoke   # transcribes whisper.cpp's sample WAV with the built app
 ```
 

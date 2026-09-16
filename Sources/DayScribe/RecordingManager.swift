@@ -132,7 +132,7 @@ final class RecordingManager {
     }
 
     func shutdown() async {
-        state = .loading // Disable recording while releasing the Metal context.
+        state = .loading // Disable recording while releasing the inference context.
         await transcription.shutdown()
     }
 }

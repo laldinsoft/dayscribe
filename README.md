@@ -2,18 +2,18 @@
 
 [![CI](https://github.com/laldinsoft/dayscribe/actions/workflows/ci.yml/badge.svg)](https://github.com/laldinsoft/dayscribe/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Platform](https://img.shields.io/badge/platform-macOS%2014%2B%20Apple%20Silicon-lightgrey)
+![Platform](https://img.shields.io/badge/platform-macOS%2014%2B%20Apple%20Silicon%20%26%20Intel-lightgrey)
 
 A tiny, native macOS menu bar utility for capturing voice notes into a daily Markdown file, transcribed entirely on your Mac.
 
 **Control + Option + N → speak → Control + Option + N → note appended to today's Markdown.**
 
-- **Fully local.** Transcription uses a statically linked [whisper.cpp](https://github.com/ggml-org/whisper.cpp) with Metal acceleration. The app has no networking code, no account, no API key, no telemetry.
+- **Fully local.** Transcription uses a statically linked [whisper.cpp](https://github.com/ggml-org/whisper.cpp), accelerated by Metal on Apple Silicon and by Accelerate and AVX2 on Intel. The app has no networking code, no account, no API key, no telemetry.
 - **Plain files.** Notes are appended to `~/Documents/Dictation/YYYY-MM-DD.md`. Nothing else is stored.
 - **Stays out of the way.** No window, no Dock icon, one global shortcut that works while other apps have focus.
 - **Safe by default.** Audio is deleted only after the note is durably written. Anything that fails is kept for manual recovery.
 
-Requirements: an Apple Silicon Mac (M1 or newer), macOS 14 or later, and Xcode or the Xcode Command Line Tools.
+Requirements: a Mac running macOS 14 or later — Apple Silicon or Intel — and Xcode or the Xcode Command Line Tools. `make build` produces a universal app that runs on both.
 
 ## Quick start
 
@@ -33,17 +33,41 @@ The model is not part of this repository. It is fetched from the [ggerganov/whis
 | --- | --- |
 | `make setup` | Download whisper.cpp and build its static libraries. No model download. |
 | `make model` | Download the Whisper `small.en` model into `models/`. |
-| `make build` | Everything above, then build `dist/DayScribe.app`. |
+| `make build` | Everything above, then build a universal `dist/DayScribe.app`. |
 | `make run` | Build if needed, then open the app. |
 | `make test` | Run the unit tests. Does not need the model. |
 | `make smoke` | Transcribe whisper.cpp's bundled sample with the built app. |
-| `make package` | Build and zip the app for another Apple Silicon Mac. |
+| `make package` | Build and zip the app for another Mac. |
 | `make clean` | Remove build output but keep downloads. |
 | `make distclean` | Remove build output and all downloads. |
 
 Each target wraps a script in `scripts/`; you can call those directly instead.
 
 The resulting `dist/DayScribe.app` is self-contained and includes the model. You can move it to `~/Applications` or `/Applications`. Choose one location before granting microphone permission. The build is ad-hoc signed for local use; distributing to other Macs properly would need Developer ID signing and notarization. Set `DAYSCRIBE_SIGNING_IDENTITY` when building if you have a signing certificate. Ad-hoc rebuilds may require granting microphone permission again.
+
+### Architectures
+
+`make build` and `make package` produce a universal app containing both an
+Apple Silicon (`arm64`) and an Intel (`x86_64`) slice, so one build runs on any
+Mac that supports macOS 14. Add `ARCH=` to build for one architecture only:
+
+| Command | What it builds |
+| --- | --- |
+| `make build` | Universal: Apple Silicon + Intel. |
+| `make build ARCH=host` | Only this Mac's architecture. Faster, and all you need to run it here. |
+| `make build ARCH=arm64` / `ARCH=x86_64` | One named architecture. |
+
+`make test` only ever builds for this Mac, since the tests run here. Building
+the Apple Silicon slice needs Metal's shader compiler, which ships with Xcode
+and not with the Command Line Tools alone; if you only have the Command Line
+Tools on an Intel Mac, use `make build ARCH=host`.
+
+On Apple Silicon you can run the Intel slice of a universal build through
+Rosetta 2 to check it:
+
+```sh
+./scripts/smoke-test.sh --arch x86_64
+```
 
 ## Use
 
@@ -104,7 +128,7 @@ dist/DayScribe.app/Contents/MacOS/DayScribe --transcribe /path/to/recovered.wav
 
 ## Local transcription and privacy
 
-The app links [whisper.cpp v1.9.4](https://github.com/ggml-org/whisper.cpp/tree/v1.9.4) directly, uses Metal/Accelerate on Apple Silicon, and keeps the `small.en` model resident. Beam-search decoding favors accuracy. The UI remains responsive because loading and inference run outside the main actor. First-run Metal initialization may take longer; actual latency depends on your Mac, note length, and audio quality. One-to-two-second transcription is a target, not a guarantee.
+The app links [whisper.cpp v1.9.4](https://github.com/ggml-org/whisper.cpp/tree/v1.9.4) directly and keeps the `small.en` model resident. On Apple Silicon inference runs on the GPU through Metal, with Accelerate alongside it. Intel Macs have no GPU that whisper.cpp's Metal kernels can use, so they transcribe on the CPU with Accelerate and AVX2/FMA kernels; that works the same way and produces the same notes, but takes a few seconds per note rather than well under one. (The AVX2 baseline is Haswell and later, which covers every Intel Mac that can run macOS 14.) Beam-search decoding favors accuracy. The UI remains responsive because loading and inference run outside the main actor. First-run Metal initialization may take longer; actual latency depends on your Mac, note length, and audio quality. One-to-two-second transcription is an Apple Silicon target, not a guarantee.
 
 All recording and inference run locally. The runtime has no networking code, external transcription process, Apple Speech service, API key, or model downloader. Whisper's curl support and server/examples are disabled at build time. Audio and transcript contents are not logged. The smoke test has been verified to pass under a macOS sandbox that denies all network access.
 
@@ -137,14 +161,14 @@ Sources/DayScribeCore/
 Sources/WhisperBridge/          Small C ABI over whisper.cpp
 Resources/                      App metadata and microphone entitlement
 scripts/                        Reproducible local setup, build, verification
-  bootstrap.sh                  Fetch whisper.cpp, build static libs, fetch model
+  bootstrap.sh                  Fetch whisper.cpp, build static libs per architecture, fetch model
   fetch-model.sh                Fetch and verify the model only
   build.sh                      Bootstrap + swift build + assemble and sign .app
   test.sh / smoke-test.sh       Unit tests / real inference on the sample WAV
   package.sh                    Zip the app for another Mac
 ```
 
-Continuous integration runs the unit tests and the smoke test on macOS runners for every pull request; see `.github/workflows/ci.yml`.
+Continuous integration runs the unit tests on both Apple Silicon and Intel macOS runners for every pull request, builds the universal app on Apple Silicon, and builds and transcribes the sample natively on Intel; see `.github/workflows/ci.yml`.
 
 ### Manual acceptance check
 
@@ -160,13 +184,13 @@ Settings, other models, and configurable shortcuts remain outside this version. 
 
 ## Copy to another Mac
 
-The other Mac must have **Apple Silicon (M1 or newer)** and **macOS 14 or later**. No development tools, account, model download, or internet connection are needed to run the packaged app.
+The other Mac must run **macOS 14 or later**; Apple Silicon and Intel are both supported, and the packaged app contains a slice for each. No development tools, account, model download, or internet connection are needed to run it.
 
 ```sh
 make package
 ```
 
-1. Copy `dist/DayScribe-macOS-arm64.zip` using AirDrop, a USB drive, or another file-transfer method. A `.sha256` sidecar is written next to it.
+1. Copy `dist/DayScribe-macOS-universal.zip` using AirDrop, a USB drive, or another file-transfer method. A `.sha256` sidecar is written next to it. (Building with `ARCH=` names the ZIP after that architecture instead.)
 2. Double-click the ZIP on the other Mac to extract `DayScribe.app`.
 3. Move the app into **Applications** (or your own `~/Applications` folder) before opening it.
 4. Open DayScribe. This build is locally signed but not notarized. If macOS blocks it, attempt to open it once, then go to **System Settings → Privacy & Security → Open Anyway** for DayScribe. See [Apple's instructions](https://support.apple.com/en-gb/102445).

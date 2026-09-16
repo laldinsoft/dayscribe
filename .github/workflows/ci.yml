@@ -5,12 +5,18 @@ on:
     branches: [main]
   pull_request:
 
-# Both jobs run on Apple Silicon macOS runners. Downloads are pinned and
+# Tests run natively on both architectures. The app is built as a universal
+# binary on Apple Silicon, and built and transcribed natively on Intel so the
+# x86_64 slice is exercised on real Intel hardware. Downloads are pinned and
 # checksum-verified by the scripts, so caching them is safe.
 jobs:
   test:
-    name: Unit tests
-    runs-on: macos-15
+    name: Unit tests (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
     steps:
       - uses: actions/checkout@v4
       - name: Cache whisper.cpp source and static libraries
@@ -19,15 +25,27 @@ jobs:
           path: |
             .vendor
             .build/native
-          key: whisper-${{ runner.os }}-${{ hashFiles('scripts/bootstrap.sh', 'scripts/lib.sh') }}
+          key: whisper-test-${{ matrix.runner }}-${{ hashFiles('scripts/bootstrap.sh', 'scripts/lib.sh') }}
       - name: Check shell syntax
         run: bash -n scripts/*.sh
       - name: Build engine and run tests
         run: ./scripts/test.sh
 
   build:
-    name: Build app and smoke test
-    runs-on: macos-15
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Build universal app and smoke test
+            runner: macos-15
+            arch: universal
+            expect: arm64 x86_64
+          - name: Build Intel app and smoke test
+            runner: macos-15-intel
+            arch: host
+            expect: x86_64
     steps:
       - uses: actions/checkout@v4
       - name: Cache whisper.cpp source and static libraries
@@ -36,13 +54,20 @@ jobs:
           path: |
             .vendor
             .build/native
-          key: whisper-${{ runner.os }}-${{ hashFiles('scripts/bootstrap.sh', 'scripts/lib.sh') }}
+          key: whisper-build-${{ matrix.runner }}-${{ hashFiles('scripts/bootstrap.sh', 'scripts/lib.sh') }}
       - name: Cache Whisper model
         uses: actions/cache@v4
         with:
           path: models
           key: model-${{ hashFiles('scripts/fetch-model.sh') }}
       - name: Build DayScribe.app
-        run: ./scripts/build.sh
+        run: make build ARCH=${{ matrix.arch }}
+      - name: Check the expected architectures are present
+        run: |
+          slices="$(lipo -archs dist/DayScribe.app/Contents/MacOS/DayScribe)"
+          echo "Built slices: $slices"
+          for arch in ${{ matrix.expect }}; do
+            echo "$slices" | grep -qw "$arch" || { echo "Missing $arch slice." >&2; exit 1; }
+          done
       - name: Transcribe the bundled sample
         run: ./scripts/smoke-test.sh

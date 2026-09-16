@@ -1,6 +1,14 @@
 # Convenience entry points. Every target is a thin wrapper over scripts/*.sh.
 .PHONY: all setup model build run test smoke package clean distclean
 
+# Override to build for something other than each script's default, e.g.
+# `make build ARCH=arm64`. Accepts universal (arm64 + x86_64), host, arm64,
+# or x86_64. `make build` and `make package` default to universal; the tests
+# default to this Mac's own architecture.
+ifneq ($(ARCH),)
+export DAYSCRIBE_ARCHS = $(ARCH)
+endif
+
 all: build
 
 ## Download whisper.cpp and build its static libraries (no model download).
@@ -11,7 +19,7 @@ setup:
 model:
 	./scripts/fetch-model.sh
 
-## Download everything needed, then build dist/DayScribe.app.
+## Download everything needed, then build a universal dist/DayScribe.app.
 build:
 	./scripts/build.sh
 
@@ -27,7 +35,7 @@ test:
 smoke:
 	./scripts/smoke-test.sh
 
-## Build and zip the app for copying to another Apple Silicon Mac.
+## Build and zip the app for copying to another Mac.
 package:
 	./scripts/package.sh
 

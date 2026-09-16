@@ -22,3 +22,28 @@ fetch() {
     fi
     mv "$destination.download" "$destination"
 }
+
+# Architectures to build for. Set DAYSCRIBE_ARCHS to "universal" (both, the
+# default), "host" (whatever this Mac is), or a space-separated list such as
+# "arm64" or "x86_64". Every script resolves it the same way so that a
+# bootstrap, a build, and a package always agree on what was produced.
+resolve_archs() {
+    local request="${DAYSCRIBE_ARCHS:-universal}" arch
+    case "$request" in
+        universal) request="arm64 x86_64" ;;
+        host|native) request="$(uname -m)" ;;
+    esac
+    for arch in $request; do
+        case "$arch" in
+            arm64|x86_64) ;;
+            *) echo "Unknown architecture '$arch'; use arm64, x86_64, universal, or host." >&2; exit 1 ;;
+        esac
+    done
+    echo $request
+}
+
+# The name used for build products: "universal" when both slices are present.
+archs_label() {
+    local archs="$1"
+    if [[ "$archs" == *arm64* && "$archs" == *x86_64* ]]; then echo universal; else echo "$archs"; fi
+}
