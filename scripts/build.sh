@@ -17,8 +17,11 @@ cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp models/ggml-small.en.bin "$APP/Contents/Resources/ggml-small.en.bin"
 cp .vendor/whisper.cpp/LICENSE "$APP/Contents/Resources/Licenses/whisper.cpp.txt"
 cp THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/Licenses/THIRD_PARTY_NOTICES.md"
-/usr/bin/codesign --force --sign "${DAYSCRIBE_SIGNING_IDENTITY:--}" --options runtime \
-    --entitlements Resources/DayScribe.entitlements "$APP"
+IDENTITY="${DAYSCRIBE_SIGNING_IDENTITY:--}"
+SIGN_FLAGS=(--force --sign "$IDENTITY" --options runtime --entitlements Resources/DayScribe.entitlements)
+# Notarization requires a secure timestamp; ad-hoc signatures cannot carry one.
+[[ "$IDENTITY" == - ]] || SIGN_FLAGS+=(--timestamp)
+/usr/bin/codesign "${SIGN_FLAGS[@]}" "$APP"
 /usr/bin/codesign --verify --strict "$APP"
 echo "Built $APP ($(lipo -archs "$APP/Contents/MacOS/DayScribe"))"
 echo "Open it with: open dist/DayScribe.app"

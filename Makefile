@@ -1,5 +1,5 @@
 # Convenience entry points. Every target is a thin wrapper over scripts/*.sh.
-.PHONY: all setup model build run test smoke package clean distclean
+.PHONY: all setup model build run test smoke package release clean distclean
 
 # Override to build for something other than each script's default, e.g.
 # `make build ARCH=arm64`. Accepts universal (arm64 + x86_64), host, arm64,
@@ -38,6 +38,10 @@ smoke:
 ## Build and zip the app for copying to another Mac.
 package:
 	./scripts/package.sh
+
+## Build, sign with Developer ID, notarize, and wrap in dist/DayScribe.dmg.
+release:
+	./scripts/release.sh
 
 ## Remove build products but keep downloads.
 clean:

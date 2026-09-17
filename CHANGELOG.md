@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 — 2026-09-17
 
 - Intel Mac support. `make build` now produces a universal app: Apple Silicon
   keeps Metal GPU inference, and Intel transcribes on the CPU with Accelerate
@@ -13,6 +13,13 @@
   `dist/DayScribe-macOS-universal.zip`.
 - CI runs the unit tests on Apple Silicon and Intel runners, and builds and
   smoke-tests the app on both.
+- Downloadable releases. `make release` signs the universal app with
+  Laldinsoft's Developer ID, notarizes and staples it, and wraps it in a
+  notarized drag-to-Applications `dist/DayScribe.dmg`. Pushing a `v*` tag runs
+  the same script in GitHub Actions and publishes the DMG to a GitHub Release,
+  and the README links to the latest one.
+- Signing with a real identity now adds a secure timestamp, which notarization
+  requires.
 
 ## 0.2.0 — 2026-09-15
 

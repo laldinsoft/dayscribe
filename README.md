@@ -13,9 +13,20 @@ A tiny, native macOS menu bar utility for capturing voice notes into a daily Mar
 - **Stays out of the way.** No window, no Dock icon, one global shortcut that works while other apps have focus.
 - **Safe by default.** Audio is deleted only after the note is durably written. Anything that fails is kept for manual recovery.
 
-Requirements: a Mac running macOS 14 or later — Apple Silicon or Intel — and Xcode or the Xcode Command Line Tools. `make build` produces a universal app that runs on both.
+## Download
 
-## Quick start
+**[Download DayScribe for Mac](https://github.com/laldinsoft/dayscribe/releases/latest/download/DayScribe.dmg)** (about 430 MB, macOS 14 or later, Apple Silicon or Intel)
+
+1. Open the downloaded `DayScribe.dmg`.
+2. Drag **DayScribe** onto the **Applications** folder in that window.
+3. Open DayScribe from Applications (or Launchpad). A microphone icon appears in the menu bar; there is no window.
+4. Press **Control + Option + N**, allow microphone access, speak, and press it again. Your note is in `Documents/Dictation`.
+
+The download is signed by Laldinsoft Ltd and notarized by Apple, so it opens normally. Everything, including the speech model, is inside the app: no account, no further downloads, and no internet connection needed after this. To update, download the new version and replace the app in Applications. To uninstall, quit DayScribe from its menu and move it to the Trash.
+
+## Build from source
+
+Requirements: a Mac running macOS 14 or later — Apple Silicon or Intel — and Xcode or the Xcode Command Line Tools. `make build` produces a universal app that runs on both.
 
 ```sh
 git clone https://github.com/laldinsoft/dayscribe.git
@@ -38,12 +49,13 @@ The model is not part of this repository. It is fetched from the [ggerganov/whis
 | `make test` | Run the unit tests. Does not need the model. |
 | `make smoke` | Transcribe whisper.cpp's bundled sample with the built app. |
 | `make package` | Build and zip the app for another Mac. |
+| `make release` | Build, sign with Developer ID, notarize, and make `dist/DayScribe.dmg`. See [RELEASING.md](RELEASING.md). |
 | `make clean` | Remove build output but keep downloads. |
 | `make distclean` | Remove build output and all downloads. |
 
 Each target wraps a script in `scripts/`; you can call those directly instead.
 
-The resulting `dist/DayScribe.app` is self-contained and includes the model. You can move it to `~/Applications` or `/Applications`. Choose one location before granting microphone permission. The build is ad-hoc signed for local use; distributing to other Macs properly would need Developer ID signing and notarization. Set `DAYSCRIBE_SIGNING_IDENTITY` when building if you have a signing certificate. Ad-hoc rebuilds may require granting microphone permission again.
+The resulting `dist/DayScribe.app` is self-contained and includes the model. You can move it to `~/Applications` or `/Applications`. Choose one location before granting microphone permission. `make build` is ad-hoc signed for local use; set `DAYSCRIBE_SIGNING_IDENTITY` to sign with a certificate instead. Ad-hoc rebuilds may require granting microphone permission again. Published downloads are made with `make release`, which signs with Laldinsoft's Developer ID and notarizes the app and disk image.
 
 ### Architectures
 
@@ -166,6 +178,7 @@ scripts/                        Reproducible local setup, build, verification
   build.sh                      Bootstrap + swift build + assemble and sign .app
   test.sh / smoke-test.sh       Unit tests / real inference on the sample WAV
   package.sh                    Zip the app for another Mac
+  release.sh                    Developer ID sign, notarize, staple, and build the DMG
 ```
 
 Continuous integration runs the unit tests on both Apple Silicon and Intel macOS runners for every pull request, builds the universal app on Apple Silicon, and builds and transcribes the sample natively on Intel; see `.github/workflows/ci.yml`.
@@ -182,9 +195,9 @@ Continuous integration runs the unit tests on both Apple Silicon and Intel macOS
 
 Settings, other models, and configurable shortcuts remain outside this version. See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
-## Copy to another Mac
+## Copy a local build to another Mac
 
-The other Mac must run **macOS 14 or later**; Apple Silicon and Intel are both supported, and the packaged app contains a slice for each. No development tools, account, model download, or internet connection are needed to run it.
+To give someone DayScribe, send them the [download link](#download). The steps below are for copying your own unnotarized build. The other Mac must run **macOS 14 or later**; Apple Silicon and Intel are both supported, and the packaged app contains a slice for each. No development tools, account, model download, or internet connection are needed to run it.
 
 ```sh
 make package
